@@ -405,6 +405,8 @@ def install(name=None,
         Install a specific version of the package, e.g. 1.2.3~0ubuntu0. Ignored
         if "pkgs" or "sources" is passed.
 
+    use_aptfast
+        Whether or not to install using the apt-fast wrapper if available on the minion.
 
     Multiple Package Installation Options:
 
@@ -530,7 +532,12 @@ def install(name=None,
                 targets.append('{0}={1}'.format(param, version_num.lstrip('=')))
         if fromrepo:
             log.info('Targeting repo {0!r}'.format(fromrepo))
-        cmd = ['apt-get', '-q', '-y']
+        
+        if salt.utils.is_true(kwargs.get('use_aptfast', False)) and salt.utils.which('apt-get'):
+            cmd = ['apt-fast', '-q', '-y']
+        else:
+            cmd = ['apt-get', '-q', '-y']
+
         if downgrade or kwargs.get('force_yes', False):
             cmd.append('--force-yes')
         cmd = cmd + ['-o', 'DPkg::Options::=--force-confold']
@@ -704,7 +711,7 @@ def purge(name=None, pkgs=None, **kwargs):
     return _uninstall(action='purge', name=name, pkgs=pkgs, **kwargs)
 
 
-def upgrade(refresh=True, dist_upgrade=True):
+def upgrade(refresh=True, dist_upgrade=True, **kwargs):
     '''
     Upgrades all packages via ``apt-get dist-upgrade``
 
@@ -716,6 +723,9 @@ def upgrade(refresh=True, dist_upgrade=True):
     dist_upgrade
         Whether to perform the upgrade using dist-upgrade vs upgrade.  Default
         is to use dist-upgrade.
+
+    use_aptfast
+        Whether or not to install using the apt-fast wrapper if available on the minion.
 
     .. versionadded:: 2014.7.0
 
@@ -734,11 +744,16 @@ def upgrade(refresh=True, dist_upgrade=True):
         refresh_db()
 
     old = list_pkgs()
+    if salt.utils.is_true(kwargs.get('use_aptfast', False)) and salt.utils.which('apt-get'):
+        cmd = ['apt-fast', '-q', '-y']
+    else:
+        cmd = ['apt-get', '-q', '-y']
+
     if dist_upgrade:
-        cmd = ['apt-get', '-q', '-y', '-o', 'DPkg::Options::=--force-confold',
+        cmd = cmd + ['-o', 'DPkg::Options::=--force-confold',
                '-o', 'DPkg::Options::=--force-confdef', 'dist-upgrade']
     else:
-        cmd = ['apt-get', '-q', '-y', '-o', 'DPkg::Options::=--force-confold',
+        cmd = cmd + ['-o', 'DPkg::Options::=--force-confold',
                '-o', 'DPkg::Options::=--force-confdef', 'upgrade']
     call = __salt__['cmd.run_all'](cmd, python_shell=False, output_loglevel='trace',
                                    env=DPKG_ENV_VARS.copy())
