@@ -532,8 +532,9 @@ def install(name=None,
                 targets.append('{0}={1}'.format(param, version_num.lstrip('=')))
         if fromrepo:
             log.info('Targeting repo {0!r}'.format(fromrepo))
-        
-        if salt.utils.is_true(kwargs.get('use_aptfast', False)) and salt.utils.which('apt-get'):
+
+        if (('aptpkg.use_aptfast' in __opts__ and __opts__['aptpkg.use_aptfast']) or \
+            salt.utils.is_true(kwargs.get('use_aptfast', False))) and salt.utils.which('apt-get'):
             cmd = ['apt-fast', '-q', '-y']
         else:
             cmd = ['apt-get', '-q', '-y']
@@ -744,7 +745,9 @@ def upgrade(refresh=True, dist_upgrade=True, **kwargs):
         refresh_db()
 
     old = list_pkgs()
-    if salt.utils.is_true(kwargs.get('use_aptfast', False)) and salt.utils.which('apt-get'):
+
+    if (('aptpkg.use_aptfast' in __opts__ and __opts__['aptpkg.use_aptfast']) or \
+        salt.utils.is_true(kwargs.get('use_aptfast', False))) and salt.utils.which('apt-get'):
         cmd = ['apt-fast', '-q', '-y']
     else:
         cmd = ['apt-get', '-q', '-y']
